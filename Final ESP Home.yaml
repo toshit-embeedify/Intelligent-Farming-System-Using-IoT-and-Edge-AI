@@ -1,0 +1,129 @@
+esphome:
+  name: esp
+  friendly_name: ESP
+
+esp8266:
+  board: esp01_1m
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "e+5gquCaXYR3aO00fNEJnjl8twiNHgNsIzVirB+bMQ4="
+
+ota:
+  - platform: esphome
+    password: "b1adf320a5667789efe2affcb8671346"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Esp Fallback Hotspot"
+    password: "fbOeD2L1Rq0M"
+
+captive_portal:
+
+# Add time component to use with total_daily_energy
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+sensor:
+
+#Humidity and temperature local 
+  - platform: dht
+    pin: GPIO2
+    model: DHT11  # Change to DHT22 if you're using that model
+    temperature:
+      name: "Temperature"
+    humidity:
+      name: "Humidity"
+    update_interval: 60s  # Update every 60 seconds
+
+#measuring the tank level   
+  - platform: ultrasonic
+    trigger_pin: GPIO1
+    echo_pin: GPIO3
+    name: "Water Tank Level"
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    update_interval: 30s
+    filters:
+      - lambda: return ((((x*100)-20)-(123-20))/(123-20))*-100;
+      - filter_out: nan
+
+
+# YFS201 Water Flow Sensor
+  - platform: pulse_counter
+    pin: GPIO4  # Pin where the YFS201 signal wire is connected
+    name: "Water Flow Rate"
+    unit_of_measurement: "L/min"
+    id: water_flow_rate  # Assigning an ID for reference
+    filters:
+      - multiply: 0.1  # Adjust based on the calibration factor of your flow sensor
+    update_interval: 30s
+
+# Total Water Usage
+  - platform: total_daily_energy
+    name: "Total Water Usage"
+    power_id: water_flow_rate
+    unit_of_measurement: "L"
+    accuracy_decimals: 2
+
+# Digital Soil Moisture Sensors
+binary_sensor:
+  - platform: gpio
+    pin: GPIO14
+    name: "Soil Moisture Sensor 1"
+    device_class: moisture
+    filters:
+      - delayed_on: 2s
+      - delayed_off: 2s
+      - lambda: |-
+          return !x;
+  - platform: gpio
+    pin: GPIO12
+    name: "Soil Moisture Sensor 2"
+    device_class: moisture
+    filters:
+      - delayed_on: 2s
+      - delayed_off: 2s
+      - lambda: |-
+          return !x;
+  - platform: gpio
+    pin: GPIO13
+    name: "Soil Moisture Sensor 3"
+    device_class: moisture
+    filters:
+      - delayed_on: 2s
+      - delayed_off: 2s
+      - lambda: |-
+          return !x;
+  
+  
+  
+  - platform: gpio
+    pin: GPIO9
+    name: "Cat Detection"
+    device_class: motion 
+  
+  
+  - platform: gpio
+    pin: GPIO16
+    name: "Bird Detection"
+    device_class: motion
+
+#Pump Control
+switch:
+  - platform: gpio
+    pin: GPIO10
+    name: "Pump Control"
+    inverted: True
+
+
+    
